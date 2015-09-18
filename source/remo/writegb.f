@@ -1,0 +1,173 @@
+C
+C     SUBROUTINE WRITEGB
+C
+C**** WRITEGB  -   UP:EIN FELD IN DEN GRIB-CODE EINPACKEN UND AUSGEBEN
+C**   AUFRUF   :   CALL WRITEGB (NUNIT, YTYP, IVLOC, UFELD, DFELD,
+C**                              SFELD, IEJE)
+C**   ENTRIES  :   KEINE
+C**   ZWECK    :   EIN FELD IN DEN GRIB-CODE EINPACKEN UND AUF EINHEIT
+C**               'NUNIT' AUSGEBEN
+C**   VERSIONS-
+C**   DATUM    :   16.03.89
+C**                20.02.96  R. PODZUN: FORSETZUNGSDATEN UNGEPACKT
+C**                                     ABSPEICHERN
+C**                2007
+C**
+C**   EXTERNALS:   SCALGB, DATAUS, MONMIT, DATUTC
+C**
+C**   EINGABE-
+C**   PARAMETER:   NUNIT: UNIT-NUMMER DER AUSGABE-DATEI
+C**                YTYP : TYP DER ERGEBNISDATEN:
+C**                      'E': NORMALE ERGEBNISDATEN FUER GESAMTGEBIET
+C**                      'D':         ERGEBNISDATEN FUER TEILGEBIET
+C**                      'F': FORTSETZUNGSDATEN     FUER GESAMTGEBIET
+C**                      'T': TRAJEKTORIEN-DATEN    FUER GESAMTGEBIET
+C**                IVLOC: PLATZ DES FELDNAMENS IN DER TABELLE *YEMNAME*
+C**                UFELD: UNGEPACKTES FELD
+C**                DFELD: FELD FUER AUSSCHNITTSGEBIET, IN *WRITEGB*
+C**                       WIRD VON UFELD NACH DFELD UMGESPEICHERT
+C**                SFELD: SKALIERTES FELD
+C**                IE,JE: DIMENSIONIERUNG VON UFELD, DFELD, SFELD
+C**   AUSGABE-
+C**   PARAMETER:   KEINE
+C**
+C**   COMMON-
+C**   BLOECKE  :   GRIB, ORG, EMGBCH, EMGBRI, HIGKON
+C**
+C**   METHODE  :   EVT. AUSWAHL DES AUSSCHNITTS-GEBIETES ('D'-DATEI);
+C**                SKALIERUNG DER FELDER AUF GRIB-CODE EINHEITEN;
+C**                EINPACKEN UND AUSGEBEN DER FELDER MIT DWDLIB-UP'S
+C**   FEHLERBE-
+C**   HANDLUNG :   STOP IM FEHLERFALL
+C**   VERFASSER:   D.MAJEWSKI
+C
+      SUBROUTINE WRITEGB(NUNIT, YTYP, IVLOC, UFELD, AK, BK, KLEV)
+C
+      IMPLICIT NONE
+C
+      INCLUDE "parorg.h"
+      INCLUDE "org.h"
+      INCLUDE "corg.h"
+      INCLUDE "grib.h"
+      INCLUDE "comdyn.h"
+      INCLUDE "emgbch.h"
+      INCLUDE "emgbri.h"
+      INCLUDE "higkon.h"
+C
+      INTEGER, PARAMETER :: KEMAX=50
+C
+C     Dummy Arguments
+C
+      INTEGER,   INTENT(IN) :: NUNIT, KLEV, IVLOC
+      CHARACTER, INTENT(IN) :: YTYP*(*)
+      REAL,      INTENT(IN) :: UFELD(IE,JE), AK(KE+1), BK(KE+1)
+C
+C     Local Variables
+C
+      REAL :: ZAK(KEMAX),       ZBK(KEMAX),       GUFELD(MOIE,MOJE),
+     &        DFELD(MOIE*MOJE), SFELD(MOIE*MOJE)
+      CHARACTER          :: YYYAKT*10
+      INTEGER            :: K,JEX,J,IEX,IEJEX,I
+      REAL               :: REF,ZFAK
+C
+      DO K=1,KEMAX
+         ZAK(K)=0.
+         ZBK(K)=0.
+      ENDDO
+      DO K=1,KE+1
+         ZAK(K)=AK(K)
+         ZBK(K)=BK(K)
+      ENDDO
+      REF=0.
+C
+C     BEI ZEITLICH INTEGRIERTEN GROESSEN (TIME RANGE INDIKATOR = 3)
+C     DEN SKALIERUNGSFAKTOR SO AENDERN, DASS DURCH VV(H) GETEILT WIRD.
+C     AUFPASSEN AUF DEN FALL VV=0 UND VV IN MINUTEN (FORTSETZUNGSDATEN).
+      IF(NGBTRI(IVLOC).EQ.3) THEN
+         IF(IPDB(16).EQ.0) THEN
+            IF(IPDB(18).EQ.0) ZFAK = EMGBFK(IVLOC)/DTDEH
+            IF(IPDB(18).GT.0) ZFAK = EMGBFK(IVLOC)/FLOAT(IPDB(18))*60.
+         ELSE IF(IPDB(16).EQ.1) THEN
+            IF(IPDB(18).EQ.0) ZFAK = EMGBFK(IVLOC)/DTDEH
+            IF(IPDB(18).GT.0) ZFAK = EMGBFK(IVLOC)/
+     &           FLOAT(NINT(FLOAT(NDMXN)*DT/3600.))
+         ENDIF
+      ELSE
+         ZFAK = EMGBFK(IVLOC)
+      ENDIF
+C
+      CALL COLLECTDATA(GUFELD,UFELD,IVLOC,KLEV)
+C
+      IF (MYID .EQ. 0) THEN
+C
+C        WENN YTYP = 'D', AUSSCHNITTSGEBIET HERSTELLEN
+         IF (YTYP.NE.'F') THEN
+C
+            IF (YTYP.EQ.'D') THEN
+               IEX   = IEDGB-IADGB+1
+               JEX   = JEDGB-JADGB+1
+               IEJEX = IEX*JEX
+               DO J = JADGB, JEDGB
+                  DO I = IADGB, IEDGB
+                     DFELD(I-IADGB+1 + (J-JADGB)*(IEDGB-IADGB+1)) =
+     &                    GUFELD(I,J)
+                  ENDDO
+               ENDDO
+C
+               CALL SCALGB(DFELD, IEJEX, ZFAK, EMGBBS(IVLOC), SFELD)
+C
+            ELSE
+               IEX   = MOIE
+               JEX   = MOJE
+               IEJEX = IEX*JEX
+               CALL SCALGB(GUFELD, IEJEX, ZFAK, EMGBBS(IVLOC), SFELD)
+            ENDIF
+C
+         ELSE
+            IEX=MOIE
+            JEX=MOJE
+C
+         ENDIF
+C
+CRP      RESTARTFILES WERDEN AB 20.02.96 FUER REMO UNGEPACKT ABGESPEICHERT
+C
+         IF (YTYP.EQ.'F') THEN
+            WRITE(NUNIT) IPDB,(IGDB(I),I=1,18),REF,
+     &           (IGDB(J),J=20,22),ZAK,ZBK
+            WRITE(NUNIT) GUFELD
+         ENDIF
+C
+         IF (YTYP.NE.'F') THEN
+C
+            IF (YTYP.EQ.'M') THEN
+C
+C              AUSUMMATION FUER MONATSMITTEL UND AM MONATSENDE ABSPEICHERN
+C
+               CALL DATUTC(NZT+1,YADAT,DT,YYYAKT,YAKDAT2,NAKJATA,AKHH)
+               CALL MONMIT(IPDB,IGDB,REF,ZAK,ZBK,SFELD,
+     &              KEMAX,YYYAKT,NHDMXN,NZT,IFEL,IEJEX)
+C
+            ELSEIF (YTYP.EQ.'N') THEN
+C
+C              AUSUMMATION FUER TAGESMITTEL UND AM TAGESENDE IN ZEITREIHEN-
+C              DATEI ABSPEICHERN
+C
+               CALL DATUTC(NZT+1,YADAT,DT,YYYAKT,YAKDAT2,NAKJATA,AKHH)
+               CALL TAGMIT(IPDB,IGDB,REF,ZAK,ZBK,SFELD,
+     &              KEMAX,YYYAKT,NHDMXN,NZVN,JFEL,INUMZRN,IEJEX)
+C
+            ELSE
+C
+C              DATEN ABSPEICHERN
+C
+               CALL DATAUS(IPDB,IGDB,REF,ZAK,ZBK,SFELD,IEJEX,KEMAX,
+     &              NUNIT)
+C
+            ENDIF
+C
+         ENDIF
+C
+      ENDIF
+C
+      RETURN
+      END SUBROUTINE WRITEGB

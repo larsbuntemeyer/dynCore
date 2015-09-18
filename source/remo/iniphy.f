@@ -1,0 +1,172 @@
+C
+C
+C**** *INIPHY* - INITIALISES PHYSICAL CONSTANTS OF UNCERTAIN VALUE.
+C
+C     J.F.GELEYN     E.C.M.W.F.     01/12/82.
+C     MODIFIED BY
+C     R. PODZUN      DKRZ           26/01/95.
+C
+C     PURPOSE.
+C     --------
+C
+C          THIS ROUTINE SETS THE VALUES FOR THE PHYSICAL CONSTANTS USED
+C     IN THE PARAMETERIZATION ROUTINES (EXCEPT FOR THE RADIATION
+C     BLACK-BOX) WHENEVER THESE VALUES ARE NOT WELL ENOUGH KNOWN TO
+C     FORBID ANY TUNING OR WHENEVER THEY ARE SUBJECT TO AN ARBITRARY
+C     CHOICE OF THE MODELLER. THESE CONSTANTS WILL BE IN *COMPH2*.
+C
+C**   INTERFACE.
+C     ----------
+C
+C          *INIPHY* IS CALLED FROM *PHYSC*.
+C
+C     METHOD.
+C     -------
+C
+C          NONE.
+C
+C     EXTERNALS.
+C     ----------
+C
+C          NONE.
+C
+C     REFERENCE.
+C     ----------
+C
+C          SEE PHYSICAL ROUTINES FOR AN EXACT DEFINITION OF THE
+C     CONSTANTS.
+C
+      SUBROUTINE INIPHY(CETA,CEVAPCU,NLEV)
+C
+      IMPLICIT NONE
+C
+      INCLUDE "COMPH2"
+      INCLUDE "COMVEG"
+      INCLUDE "COMCON"
+      INCLUDE "comdia.h"
+      INCLUDE "grid.h"
+C
+C     Dummy Arguments
+C
+      INTEGER, INTENT(IN)    :: NLEV
+      REAL,    INTENT(IN)    :: CETA(NLEV)
+      REAL,    INTENT(INOUT) :: CEVAPCU(NLEV)
+C
+C     Local Variables
+C
+      INTEGER :: JK
+C
+C     ------------------------------------------------------------------
+C
+C*         1.     SETTING OF SINGLE VARIABLES.
+C                 ------- -- ------ ----------
+C
+C*         1.1     CONSTANTS FOR *VDIFF* AND *CEMASTR*
+C
+      CLAM=300.
+      CKAP=0.4
+      CB=5.
+      CC=5.
+      CD=5.
+      CVDIFTS=1.5
+C     ORIGINAL T106 VALUE CCHAR=0.032
+CRP
+C     RESOLUTION-DEPENDING SETTINGS FOR SOME CONSTANTS
+C     DLAM MUST BE EQUAL TO DPHI ELSE ERROR EXIT
+CRP
+      IF (DLAM.NE.DPHI) THEN
+         WRITE(*,*) 'INIPHY: DLAM MUST BE .EQ. DPHI'
+         STOP 'ERROR'
+      ENDIF
+      CCHAR=0.0123
+      CZZLAM=1.
+      CTAU=900.
+      IF (DLAM.LT.0.1599) THEN
+         CCHAR=0.0123
+         CZZLAM=1.
+         CTAU=600.
+      ELSE IF (DLAM.LE.0.51.AND.DLAM.GE.0.16) THEN
+         CCHAR=0.0123
+         CZZLAM=1.
+         CTAU=900.
+      ELSE IF (DLAM.LE.1.01.AND.DLAM.GE.0.99) THEN
+         CCHAR=0.0032
+         CZZLAM=30.
+         CTAU=3600.
+      ELSE IF (DLAM.LE.2.82.AND.DLAM.GE.1.01) THEN
+         CCHAR=0.0032
+         CZZLAM=30.
+         CTAU=3600.
+      ELSE
+         WRITE(*,*) 'YOUR RESOLUTION IS CURRENTLY NOT SUPPORTED,'
+         WRITE(*,*) 'PLEASE CHECK THE CONSTANTS CCHAR, CZZLAM AND CTAU
+     &IN INIPHY'
+      ENDIF
+      IF (LDIA) THEN
+         WRITE(*,'(A6,F8.4,A8,F6.0,A6,F8.0)') 'CCHAR=',CCHAR,
+     &   ' CZZLAM=',CZZLAM,' CTAU=',CTAU
+      ENDIF
+C
+C*         1.2     CONSTANT FOR *VDIFF* AND *RADMOD*.
+C
+      CTFREEZ=273.16-1.79
+      CZ0ICE=0.001
+C
+C*         1.3     CONSTANT FOR *VDIFF*, *QNEGAT*, *SURF* AND *RADMOD*.
+C
+      CQSNCR=1./0.015
+C
+C*         1.4     CONSTANT FOR MASSFLUX CONVECTION SCHEME
+C
+      CCCTIM=1.8E+03
+C
+C*         1.5     CONSTANTS FOR *KUO* AND *COND*.
+C
+      DO JK=1,NLEV
+         CEVAPCU(JK)=1.93E-6*261.*SQRT(1.E3/(38.3*0.293)*
+     &        SQRT(CETA(JK)))*0.5/G
+         CEVAPCU(JK)=AMAX1(CEVAPCU(JK),0.)
+      ENDDO
+C
+C*         1.6     CONSTANTS FOR *SURF*.
+C
+      CD1=0.07
+      CD2=0.42
+      CLICE=0.3
+      CQCON=1.E-10
+      CQDIF=1.E-7
+C
+C
+C*        1.7     CONSTANTS FOR DIAGNOSTICS IN *SURF*.
+C
+C
+C*        1.8     CONSTANTS FOR *VDIFF* AND *SURF*
+C
+      CWSAT=.44*CD1
+      CGH2O=4.18E6
+C
+      CWLMAX=2.E-4
+C
+      CVROOTS=.50
+      CVROOTD=.50
+      CVROOTC=0.
+      CVRAD=0.55
+      CVINTER=1.
+      CORVARI=50.**2
+      CORVARS=750.**2
+C
+      CVA=5000.
+      CVB=10.
+      CVC=100.
+      CVK=.9
+      CVBC=CVB*CVC
+      CVKC=CVK*CVC
+      CVABC=(CVA+CVBC)/CVC
+C
+C     ------------------------------------------------------------------
+C
+C*         3.     RETURN.
+C                 -------
+C
+      RETURN
+      END SUBROUTINE INIPHY

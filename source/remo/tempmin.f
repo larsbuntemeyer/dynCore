@@ -1,0 +1,72 @@
+C
+C     SUBROUTINE TEMPMIN
+C
+C**** PROGAUS  -   UP:CHECK FOR MINIMUM TEMPERATURE
+C**   AUFRUF   :   CALL TEMPMIN(T)
+C**   ENTRIES  :   KEINE
+C**   ZWECK    :   CHECK FOR MINIMUM TEMPERATURE
+C**
+C**   VERSIONS-
+C**   DATUM    :   15.09.2014
+C**
+C**   EXTERNALS:   KEINE
+C**
+C**   EINGABE-
+C**   PARAMETER:   T
+C**   AUSGABE-
+C**   PARAMETER:   KEINE
+C**
+C**   COMMON-
+C**   BLOECKE  :   ORG, PARORG, COMDYN
+C**
+C**   METHODE  :   CHECK DER MINIMALEN TEMPERATUR
+C**                ZU JEDEM ZEITSCHRITT
+C**   FEHLERBE-
+C**   HANDLUNG :   KEINE
+C**   VERFASSER:   K.SIECK
+C
+      SUBROUTINE TEMPMIN(T)
+C
+      IMPLICIT NONE
+C
+      INCLUDE "parorg.h"
+      INCLUDE "org.h"
+C
+C     Dummy Arguments
+C     PERMANENTE VARIABLEN
+C
+      REAL, INTENT(IN) :: T(IE,JE,KE,3)
+C
+C     Local Variables
+C
+      REAL    :: ZTEMPMIN,ZTEMPWARN,ZTEMPCRASH
+      INTEGER :: I,J,K,NT
+C
+      ZTEMPMIN=273.
+      ZTEMPWARN=150.
+      ZTEMPCRASH=100.
+      NT=NE
+C
+      DO K = 1  ,KE
+         DO J = JAH,JEH
+            DO I = IAH,IEH
+               ZTEMPMIN = MIN(ZTEMPMIN, T(I, J, K, NT))
+            ENDDO
+         ENDDO
+      ENDDO
+
+      COUNT = 1
+      CALL PALLREDUCER(ZTEMPMIN, MPI_MIN)
+
+      IF (MYID.EQ.0) THEN
+         IF (ZTEMPMIN.LT.ZTEMPWARN) THEN
+            PRINT *, 'WARNING: TEMPMIN=', ZTEMPMIN, ' K'
+            IF (ZTEMPMIN.LT.ZTEMPCRASH) THEN
+               PRINT *, 'TEMPMIN BELOW 100 K'
+               STOP 2
+            ENDIF
+         ENDIF
+      ENDIF
+C
+      RETURN
+      END SUBROUTINE TEMPMIN

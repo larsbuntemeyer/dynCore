@@ -1,0 +1,245 @@
+      SUBROUTINE TAGMIT(IPDB,IGDB,REF,ZAK,ZBK,SFELD,
+     &                  KEMAX,YYYAKT,NHDMXN,NZVN,JFEL,INUMZRN,IEJE)
+C
+      IMPLICIT NONE
+C
+      INCLUDE "corg.h"
+      INCLUDE "emgbch.h"
+      INCLUDE "sumfel.h"
+      INCLUDE "comdia.h"
+      INCLUDE "unitzr.h"
+C
+C     Dummy Arguments
+C
+      INTEGER,          INTENT(IN) :: JFEL,NHDMXN,KEMAX,
+     &                                NZVN,INUMZRN,IEJE
+C
+C     EINGABEFELDER UND -VARAIBLEN
+C
+      DOUBLE PRECISION, INTENT(IN) :: REF,ZAK(KEMAX),ZBK(KEMAX),
+     &                                SFELD(IEJE)
+      INTEGER,          INTENT(IN) :: IPDB(37), IGDB(22)
+      CHARACTER,        INTENT(IN) :: YYYAKT*10
+C
+C     Local Variables
+C
+      INTEGER :: IW,IUN,II,IIV,I,IAKTDAT,ICODE,IHAKT,NTAB2,NUNIT,
+     &           MMM2,MMM1,KL,KC,JJJ2,JJJ1,ITA2,ITA1,ISTADAT,IJ,IHANF
+      REAL    :: RREF
+C
+C     AUSGABEFELDER UND -VARAIBLEN
+C
+      REAL    :: SUMS(IEJE,JFEL)
+      REAL    :: AK(KEMAX), BK(KEMAX)
+C
+C     HILFSFELDER UND VARIABLEN
+C
+      REAL    :: FIN(IEJE)
+      LOGICAL :: LTAGANF, LNEUTER
+C
+C     HILFSGROSSEN BELEGEN
+C
+      IIV=NHDMXN
+      RREF=REAL(REF)
+      LTAGANF=.FALSE.
+      LNEUTER=.FALSE.
+C
+C     AM TAGESANFANG FESTSTELLEN
+C
+      READ(YANDAT,'(I4,3I2)') JJJ1, MMM1, ITA1 , IHANF
+      READ(YYYAKT,'(I4,3I2)') JJJ2, MMM2, ITA2 , IHAKT
+      IF (KFIRST.EQ.1) THEN
+         ISTADAT=JJJ1*1000000+MMM1*10000+ITA1*100+IHANF
+         KFIRST=0
+         JSTADAT=ISTADAT
+      ELSE
+         ISTADAT=JSTADAT
+      ENDIF
+      IAKTDAT=JJJ2*1000000+MMM2*10000+ITA2*100+IHAKT
+      LTAGANF=((ISTADAT+IIV).EQ.IAKTDAT).AND.(JFIRST.EQ.1)
+C
+      IF (LTAGANF) THEN
+C
+         IF (LDIA) PRINT *,'SUBROUTINE TAGMIT:'
+         IF (LDIA) PRINT *,'YANDAT=',YANDAT
+         IF (LDIA) PRINT *,'ISTADAT=',ISTADAT,' IAKTDAT=',IAKTDAT
+C
+         JFIRST=0
+C
+C     ZU SICHERNDE VARIABLEN INITIALISIEREN
+C
+         JAKTTER=IAKTDAT
+         JSJAHR=IPDB(11)
+         JSMON=IPDB(12)
+         JSTAG=IPDB(13)
+         JTAG=IPDB(13)
+         JSTD=IPDB(14)
+C
+         DO IW=1,4
+            DO IJ=1,IEJE
+               DSUMXT(IJ,IW)=-1.E-34
+            ENDDO
+         ENDDO
+         DO IW=1,2
+            DO IJ=1,IEJE
+               DSUMNT(IJ,IW)=1.E34
+            ENDDO
+         ENDDO
+C
+         JT=1
+         JC=0
+         JM=0
+         JN=0
+C
+      ENDIF
+C
+C     FESTSTELLEN OB NEUER TERMIN
+C
+      LNEUTER=IAKTDAT.NE.JAKTTER
+C
+      IF (LNEUTER) THEN
+         IF (LDIA) PRINT *,'JAKTTER=',JAKTTER,' IAKTDAT=',IAKTDAT
+         JAKTTER=IAKTDAT
+C
+C     ZAEHLER FUER DIE TERMINE EINES TAGES HOCHZAEHLEN
+C
+         JT=JT+1
+         JM=0
+         JN=0
+         JC=0
+      ENDIF
+C
+C
+C     ZAEHLER FUER DIE FELDER EINES TERMINS HOCHZAEHLEN
+C
+      JC=JC+1
+C
+C     UMSPEICHERN DER EINGABEFELDER
+C
+      DO II=1,37
+         KPDB(II,JC)=IPDB(II)
+      ENDDO
+      DO II=1,22
+         KGDB(II,JC)=IGDB(II)
+      ENDDO
+      DO KL=1,KEMAX
+         AK(KL)=REAL(ZAK(KL))
+         BK(KL)=REAL(ZBK(KL))
+      ENDDO
+      DO IJ=1,IEJE
+         FIN(IJ)=REAL(SFELD(IJ))
+      ENDDO
+C
+      ICODE=KPDB(7,JC)
+C
+      IF (ICODE.EQ.201.OR.ICODE.EQ.214.OR.
+     &    ICODE.EQ.216.OR.ICODE.EQ.217) THEN
+         JM=JM+1
+         DO IJ=1,IEJE
+            DSUMXT(IJ,JM)=AMAX1(FIN(IJ),DSUMXT(IJ,JM))
+         ENDDO
+         IF (JSTD.EQ.0) THEN
+            DO IJ=1,IEJE
+               SUMT(IJ,JC)=DSUMXT(IJ,JM)
+            ENDDO
+         ENDIF
+C
+      ELSEIF (ICODE.EQ.202.OR.ICODE.EQ.215) THEN
+         JN=JN+1
+         DO IJ=1,IEJE
+            DSUMNT(IJ,JN)=AMIN1(FIN(IJ),DSUMNT(IJ,JN))
+         ENDDO
+         IF (JSTD.EQ.0) THEN
+            DO IJ=1,IEJE
+               SUMT(IJ,JC)=DSUMNT(IJ,JN)
+            ENDDO
+         ENDIF
+C
+      ELSE
+         DO IJ=1,IEJE
+            SUMT(IJ,JC)=SUMT(IJ,JC)+FIN(IJ)
+         ENDDO
+C
+      ENDIF
+C
+C     SOLANGE NICHT ALLE FELDER EINES TERMINS VERARBEITET
+C     SIND: 'RETURN', SONST WEITER UND 'RETURN' ODER
+C     TAGESENDE
+C
+      IF (JC.NE.JFEL) THEN
+         RETURN
+      ELSE
+         JAKTTER=IAKTDAT
+         JSTD=JSTD+IIV
+         IF (JSTD.EQ.24) THEN
+            JSTD=0
+            JTAG=JTAG+1
+         ENDIF
+C
+C     WENN NICHT TAGESENDE, BEENDE ROUTINE
+C
+         IF (JSTD.LE.0) RETURN
+         IF (JTAG.EQ.JSTAG) RETURN
+      ENDIF
+C
+      IF (LDIA) PRINT *,'JT=',JT,' JSTAG=',JSTAG,' JTAG=',JTAG
+C
+C     MITTELWERTE UND STANDARDABWEICHUNGEN BERECHNEN
+C
+      DO KC=1,JFEL
+C
+         ICODE=KPDB(7,KC)
+C
+         IF (ICODE.EQ.201.OR.ICODE.EQ.202.OR.
+     &       ICODE.EQ.214.OR.ICODE.EQ.215.OR.
+     &       ICODE.EQ.216.OR.ICODE.EQ.217) THEN
+            DO IJ=1,IEJE
+               IF (DABS(SUMT(IJ,KC)).LT.1.E-34) SUMT(IJ,KC)=0.0
+               SUMS(IJ,KC)=REAL(SUMT(IJ,KC))
+            ENDDO
+         ELSE
+C
+            DO IJ=1,IEJE
+               SUMT(IJ,KC)=SUMT(IJ,KC)/DBLE(JT)
+               IF (DABS(SUMT(IJ,KC)).LT.1.E-34) SUMT(IJ,KC)=0.0
+               SUMS(IJ,KC)=REAL(SUMT(IJ,KC))
+            ENDDO
+         ENDIF
+C
+      ENDDO
+C
+C     FELDER AUSGEBEN
+C
+      DO KC=1,NZVN
+C
+C     FELDNAME IN DER TABELLE *YEMNAME* SUCHEN
+         DO NTAB2 = 1,NFLDEM
+            IF (YNVARN(KC).EQ.YEMNAME(NTAB2)) THEN
+               IUN=MOD(KC,INUMZRN)
+               IF (IUN.EQ.0) IUN=INUMZRN
+               NUNIT=NUNDAT(IUN)
+               EXIT
+            ENDIF
+         ENDDO
+C
+         KPDB(11,KC)=JSJAHR
+         KPDB(12,KC)=JSMON
+         KPDB(13,KC)=JSTAG
+         KPDB(14,KC)=0
+         KPDB(20,KC)=1
+         WRITE(NUNIT) (KPDB(I,KC),I=1,37),(KGDB(I,KC),I=1,18),RREF,
+     &        (KGDB(I,KC),I=20,22),AK,BK
+         WRITE(NUNIT) (SUMS(IJ,KC),IJ=1,IEJE)
+C
+         DO IJ=1,IEJE
+            SUMT(IJ,KC)=0.0
+         ENDDO
+C
+      ENDDO
+C
+C     TAGESMITTEL GESICHERT = NEUER TAG
+      JFIRST=1
+      JSTADAT=IAKTDAT
+C
+      RETURN
+      END SUBROUTINE TAGMIT

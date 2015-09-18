@@ -1,0 +1,250 @@
+      SUBROUTINE HALOEXCH(KSIZE, ITYPE, VAR01, VAR02,
+     &     VAR03, VAR04, VAR05, VAR06, VAR07, VAR08, VAR09, VAR10)
+C
+C     THIS ROUTINE IS UPDATING THE HALOS
+C
+C     ONE VARIABLE (VAR01) HAS TO BE PRESENT. 9 ADDITIONAL VARIABLES CAN
+C     BE SEND (VAR02-VAR10). RIGHT NOW EVERYTHING IS HARD CODED FOR TWO
+C     HALO LINES AROUND EACH SUBDOMAIN.
+C
+      IMPLICIT NONE
+C
+      INCLUDE "parorg.h"
+C
+C     Dummy Arguments
+C
+      INTEGER, INTENT(IN) ::
+     &     KSIZE(10),
+     &     ITYPE
+
+      REAL, INTENT(INOUT) ::
+     &     VAR01(IE, JE, KSIZE( 1))
+
+      REAL, OPTIONAL, INTENT(INOUT) ::
+     &     VAR02(IE, JE, KSIZE( 2)),
+     &     VAR03(IE, JE, KSIZE( 3)),
+     &     VAR04(IE, JE, KSIZE( 4)),
+     &     VAR05(IE, JE, KSIZE( 5)),
+     &     VAR06(IE, JE, KSIZE( 6)),
+     &     VAR07(IE, JE, KSIZE( 7)),
+     &     VAR08(IE, JE, KSIZE( 8)),
+     &     VAR09(IE, JE, KSIZE( 9)),
+     &     VAR10(IE, JE, KSIZE(10))
+C
+C     Local Variables
+C
+      REAL, DIMENSION(:,:), ALLOCATABLE :: REBUF
+      REAL    :: CYK
+      INTEGER :: IL, IMESLEN, IBUF, KSUM, K, IBUFLEN
+      INTEGER :: ILO_LS, IUP_LS, JLO_LS, JUP_LS,
+     &           ILO_LR, IUP_LR, JLO_LR, JUP_LR,
+     &           ILO_US, IUP_US, JLO_US, JUP_US,
+     &           ILO_UR, IUP_UR, JLO_UR, JUP_UR,
+     &           ILO_RS, IUP_RS, JLO_RS, JUP_RS,
+     &           ILO_RR, IUP_RR, JLO_RR, JUP_RR,
+     &           ILO_DS, IUP_DS, JLO_DS, JUP_DS,
+     &           ILO_DR, IUP_DR, JLO_DR, JUP_DR
+
+      LOGICAL :: LPRES(9)
+
+C     START AND END INDICES FOR PUTBUF AND GETBUF
+
+      ILO_LS = 3
+      IUP_LS = 4
+      JLO_LS = 1
+      JUP_LS = JE
+
+      ILO_LR = 1
+      IUP_LR = 2
+      JLO_LR = 1
+      JUP_LR = JE
+
+      ILO_US = 1
+      IUP_US = IE
+      JLO_US = JE-3
+      JUP_US = JE-2
+
+      ILO_UR = 1
+      IUP_UR = IE
+      JLO_UR = JE-1
+      JUP_UR = JE
+
+      ILO_RS = IE-3
+      IUP_RS = IE-2
+      JLO_RS = 1
+      JUP_RS = JE
+
+      ILO_RR = IE-1
+      IUP_RR = IE
+      JLO_RR = 1
+      JUP_RR = JE
+
+      ILO_DS = 1
+      IUP_DS = IE
+      JLO_DS = 3
+      JUP_DS = 4
+
+      ILO_DR = 1
+      IUP_DR = IE
+      JLO_DR = 1
+      JUP_DR = 2
+
+!     CALCULATE BUFFER LENGTH DEPENDING ON NUMBER OF VARIABLES AND LEVELS
+
+      KSUM = 0
+      DO K = 1, 10
+        KSUM = KSUM + KSIZE(K)
+      END DO
+
+      IBUFLEN = 2*MAX(IE,JE)*KSUM
+
+      ALLOCATE(REBUF(IBUFLEN,6))
+
+!     CHECK WHICH OPTIONAL VARIABLES ARE PRESENT
+
+      LPRES(1) = PRESENT(VAR02)
+      LPRES(2) = PRESENT(VAR03)
+      LPRES(3) = PRESENT(VAR04)
+      LPRES(4) = PRESENT(VAR05)
+      LPRES(5) = PRESENT(VAR06)
+      LPRES(6) = PRESENT(VAR07)
+      LPRES(7) = PRESENT(VAR08)
+      LPRES(8) = PRESENT(VAR09)
+      LPRES(9) = PRESENT(VAR10)
+
+C     SEND TO LEFT NEIGHBOR
+
+      IF (NEIGHBOR(1) .NE. -1) THEN
+        IBUF = 1
+        CALL PUTBUF(VAR01, VAR02,
+     &       VAR03, VAR04, VAR05, VAR06, VAR07, VAR08, VAR09, VAR10,
+     &       REBUF, KSIZE, ILO_LS, IUP_LS, JLO_LS, JUP_LS,
+     &       IMESLEN, IBUF, LPRES, IBUFLEN)
+
+        TYPE  = ITYPE + 1
+        COUNT = IMESLEN*1
+        DEST  = NEIGHBOR(1)
+        CALL PSENDR(REBUF(1,IBUF))
+
+      END IF
+
+C     SEND TO RIGHT NEIGHBOR
+
+      IF (NEIGHBOR(3) .NE. -1) THEN
+         IBUF = 2
+         CALL PUTBUF(VAR01, VAR02,
+     &        VAR03, VAR04, VAR05, VAR06, VAR07, VAR08, VAR09, VAR10,
+     &        REBUF, KSIZE, ILO_RS, IUP_RS, JLO_RS, JUP_RS,
+     &        IMESLEN, IBUF, LPRES, IBUFLEN)
+
+         TYPE  = ITYPE
+         COUNT = IMESLEN*1
+         DEST  = NEIGHBOR(3)
+         CALL PSENDR(REBUF(1,IBUF))
+      END IF
+C
+C     RECIEVE FROM LEFT AND RIGHT NEIGHBOR
+C
+      CYK         = 2
+      TAGCOUNT    = 2
+      TAGTABLE(1) = ITYPE
+      TAGTABLE(2) = ITYPE + 1
+      IBUF = 3
+      IF (NEIGHBOR(1) .EQ. -1) CYK = CYK - 1
+      IF (NEIGHBOR(3) .EQ. -1) CYK = CYK - 1
+      IL = 0
+      DO  WHILE (IL.LT.CYK)
+        CALL PTEST
+        CALL PRECVR(REBUF(1,IBUF))
+
+C       RECIEVE FROM LEFT NEIGHBOR
+
+        IF (SOURCE .EQ.NEIGHBOR(1)) THEN
+          CALL GETBUF(VAR01, VAR02,
+     &         VAR03, VAR04, VAR05, VAR06, VAR07, VAR08, VAR09, VAR10,
+     &         REBUF, KSIZE, ILO_LR, IUP_LR, JLO_LR, JUP_LR,
+     &         IMESLEN, IBUF, LPRES, IBUFLEN)
+          IL = IL+1
+        END IF
+
+C       RECIEVE FROM RIGHT NEIGHBOR
+
+        IF (SOURCE.EQ.NEIGHBOR(3)) THEN
+          CALL GETBUF(VAR01, VAR02,
+     &         VAR03, VAR04, VAR05, VAR06, VAR07, VAR08, VAR09, VAR10,
+     &         REBUF, KSIZE, ILO_RR, IUP_RR, JLO_RR, JUP_RR,
+     &         IMESLEN, IBUF, LPRES, IBUFLEN)
+          IL = IL+1
+        END IF
+      END DO
+
+C     SEND TO UPPER NEIGHBOR
+
+      IF (NEIGHBOR(2) .NE. -1) THEN
+        IBUF = 4
+        CALL PUTBUF(VAR01, VAR02,
+     &       VAR03, VAR04, VAR05, VAR06, VAR07, VAR08, VAR09, VAR10,
+     &       REBUF, KSIZE, ILO_US, IUP_US, JLO_US, JUP_US,
+     &       IMESLEN, IBUF, LPRES, IBUFLEN)
+
+        TYPE  = ITYPE + 2
+        COUNT = IMESLEN*1
+        DEST  = NEIGHBOR(2)
+        CALL PSENDR(REBUF(1,IBUF))
+      END IF
+
+C     SEND TO LOWER NEIGHBOR (DOWN)
+
+      IF (NEIGHBOR(4) .NE. -1) THEN
+        IBUF = 5
+        CALL PUTBUF(VAR01, VAR02,
+     &       VAR03, VAR04, VAR05, VAR06, VAR07, VAR08, VAR09, VAR10,
+     &       REBUF, KSIZE, ILO_DS, IUP_DS, JLO_DS, JUP_DS,
+     &       IMESLEN, IBUF, LPRES, IBUFLEN)
+
+         TYPE  = ITYPE + 3
+         COUNT = IMESLEN*1
+         DEST  = NEIGHBOR(4)
+         CALL PSENDR(REBUF(1,IBUF))
+      END IF
+C
+C     RECIEVE FROM UPPER AND LOWER NEIGHBOR
+C
+      CYK         = 2
+      TAGCOUNT    = 2
+      TAGTABLE(1) = ITYPE + 2
+      TAGTABLE(2) = ITYPE + 3
+      IBUF = 6
+      IF (NEIGHBOR(2) .EQ. -1) CYK = CYK - 1
+      IF (NEIGHBOR(4) .EQ. -1) CYK = CYK - 1
+      IL = 0
+      DO WHILE (IL.LT.CYK)
+        CALL PTEST
+        CALL PRECVR(REBUF(1,IBUF))
+
+C       RECIEVE FROM UPPER NEIGHBOR
+
+        IF (SOURCE.EQ.NEIGHBOR(2)) THEN
+          CALL GETBUF(VAR01, VAR02,
+     &         VAR03, VAR04, VAR05, VAR06, VAR07, VAR08, VAR09, VAR10,
+     &         REBUF, KSIZE, ILO_UR, IUP_UR, JLO_UR, JUP_UR,
+     &         IMESLEN, IBUF, LPRES, IBUFLEN)
+          IL = IL+1
+        END IF
+
+C       RECIEVE FROM LOWER NEIGHBOR
+
+        IF (SOURCE.EQ.NEIGHBOR(4)) THEN
+          CALL GETBUF(VAR01, VAR02,
+     &         VAR03, VAR04, VAR05, VAR06, VAR07, VAR08, VAR09, VAR10,
+     &         REBUF, KSIZE, ILO_DR, IUP_DR, JLO_DR, JUP_DR,
+     &         IMESLEN, IBUF, LPRES, IBUFLEN)
+          IL = IL+1
+        END IF
+      END DO
+
+      CALL PWAIT
+
+      DEALLOCATE(REBUF)
+
+      END SUBROUTINE HALOEXCH

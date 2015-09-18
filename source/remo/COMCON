@@ -1,0 +1,72 @@
+C
+C@(#) BIBLIOTHEK EM: EUROPA-MODELL / DEUTSCHLAND-MODELL
+C@(#) MODUL COMCON.H, V2.12 VOM 4/27/94, EXTRAHIERT AM 4/28/94
+C
+C
+C       ----------------------------------------------------------------
+C
+C*    COMMON *COMCON* BASIC UNIVERSAL CONSTANTS  AND DERIVED CONSTANTS.
+C
+C       ----------------------------------------------------------------
+C
+CSP
+      LOGICAL :: LCOLDC
+C
+      REAL    ::
+     & API,      A,        OMEGA,    G,
+     & CPD,      CPV,      RD,       RV,
+     & RCPD,     VTMPC1,   VTMPC2,
+     & RHOH2O,   ALV,      ALS,      ALF,      CLW,      TMELT,
+     & SOLC,     STBO,     DAYL,     YEARL,
+     & C1ES,     C2ES,     C3LES,    C3IES,    C4LES,    C4IES,
+     & C5LES,    C5IES
+C
+      COMMON /COMCON/
+     & API,      A,        OMEGA,    G,
+     & CPD,      CPV,      RD,       RV,
+     & RCPD,     VTMPC1,   VTMPC2,
+     & RHOH2O,   ALV,      ALS,      ALF,      CLW,      TMELT,
+     & SOLC,     STBO,     DAYL,     YEARL,
+     & C1ES,     C2ES,     C3LES,    C3IES,    C4LES,    C4IES,
+     & C5LES,    C5IES,    LCOLDC
+C
+C
+C*    COMMON *COMCON* BASIC UNIVERSAL CONSTANTS  AND DERIVED CONSTANTS.
+C
+C     R.G AND M.J        E.C.M.W.F.     29/11/82.
+C
+C      NAME     TYPE      PURPOSE
+C      ----     ----      -------
+C
+C     *API*     REAL      *2.*ARCSIN(1.).
+C     *A*       REAL      *RADIUS OF THE EARTH.
+C     *OMEGA*   REAL      *SOLID ROTATION VELOCITY OF THE EARTH.
+C     *G*       REAL      *GRAVITY ACCELERATION.
+C     *CPD*     REAL      *SPECIFIC HEAT AT CONSTANT PRESSURE (DRY AIR).
+C     *CPV*     REAL      *           IDEM               (WATER VAPOUR).
+C     *RD*      REAL      *GAS CONSTANT FOR DRY AIR.
+C     *RV*      REAL      *   IDEM      FOR WATER VAPOUR.
+C     *RCPD*    REAL      *RCPD=1./CPD.
+C     *VTMPC1*  REAL      *VTMPC1=RV/RD-1.
+C     *VTMPC2*  REAL      *VTMPC2=CPV/CPD-1.
+C     *RHOH2O*  REAL      *DENSITY OF LIQUID WATER.
+C     *ALV*     REAL      *LATENT HEAT FOR VAPORISATION.
+C     *ALS*     REAL      *LATENT HEAT FOR SUBLIMATION.
+C     *ALF*     REAL      *LATENT HEAT FOR FUSION.
+C     *CLW*     REAL      *SPECIFIC HEAT FOR LIQUID WATER.
+C     *TMELT*   REAL      *TEMPERATURE OF FUSION OF ICE.
+C     *SOLC*    REAL      *SOLAR CONSTANT.
+C     *STBO*    REAL      *STEPHAN BOLTZMANN CONSTANT.
+C     *DAYL*    REAL      *LENGTH OF THE DAY (IN SECONDS).
+C     *YEARL*   REAL      *LENGTH OF THE YEAR (IN DAYS).
+C     *C__ES*   REAL      *CONSTANTS USED FOR COMPUTATION OF SATURATION
+C                         MIXING RATIO OVER LIQUID WATER(*C_LES*) OR
+C                         ICE(*C_IES*).
+C     *COZ__*   REAL      *REFERS TO *OZONE.
+C     *C___C*   REAL      *REFERS TO *COS COMPONENT.
+C     *C___S*   REAL      *REFERS TO *SIN COMPONENT.
+C
+CSP
+C     *LCOLDC*  LOGICAL   *SWITCH FOR ACTVATING COLDCONVECTION DEFAULT=.TRUE.
+CSP
+C

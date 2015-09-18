@@ -1,0 +1,36 @@
+C
+C       ----------------------------------------------------------------
+C
+C*    COMMON *COMPH1* CONSTANTS TO COMMUNICATE BETWEEN THE MAIN PROGRAM
+C                     AND THE RADIATION SUBROUTINES.
+C
+C       ----------------------------------------------------------------
+C
+      REAL ::      COSRAD(128), SINRAD(128)
+C
+      REAL ::
+     & CDISSE,   CRAE,     CZEN1,    CZEN2,    CZEN3,
+     & CZEN1M,CZEN2M,CZEN3M,CDISSEM
+C
+      COMMON /COMPH1/
+     & CDISSE,   CRAE,     CZEN1,    CZEN2,    CZEN3,
+     & CZEN1M,CZEN2M,CZEN3M,CDISSEM,
+     & COSRAD,   SINRAD
+C
+*IF DEF,DOC
+C
+C*    COMMON *COMPH1* CONSTANTS TO COMMUNICATE BETWEEN THE MAIN PROGRAM
+C                     AND THE RADIATION SUBROUTINES.
+C
+C     R.G AND M.J        E.C.M.W.F.     29/11/82.
+C
+C      NAME     TYPE      PURPOSE
+C      ----     ----      -------
+C
+C     *CDISSE*  REAL      *SOLAR CONSTANT NORMALISED BY ITS ANNUAL MEAN.
+C     *CRAE*    REAL     *RATIO:ATMOSPHERIC HEIGHT/RADIUS OF THE EARTH.
+C     *CZEN_*   REAL      *ORBITAL PARAMETERS.
+C     *COSRAD*  REAL      *COS OF LONGITUDES USED IN *SOLANGE*.
+C     *SINRAD*  REAL      *SIN OF LONGITUDES USED IN *SOLANGE*.
+C
+*ENDIF

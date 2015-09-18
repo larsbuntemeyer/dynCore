@@ -1,0 +1,11 @@
+#
+# makefile for hydro module
+#
+
+Hydro += Hydro.o progexp.o remark.o gauss.o copyre.o mo_ec4org.o
+
+Hydro.o : Grid.o Database.o RuntimeParameters.o mo_ec4org.o
+
+progexp.o : Hydro.o remark.o gauss.o copyre.o 
+
+

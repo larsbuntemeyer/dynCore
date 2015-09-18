@@ -1,0 +1,61 @@
+      SUBROUTINE PSREDBER(AK, BK,
+     &                    T , PS, FIB , PSRED, NX)
+C**
+C**** PSREDBER -   UP:AUF NN REDUZIERTEN BODENDRUCK BERECHNEN
+C**
+C**   AUFRUF   :   CALL PSREDBER(AK, BK,
+C**                              T , PS, FIB , PSRED, NX)
+C**   ZWECK    :   AUF NN REDUZIERTEN BODENDRUCK BERECHNEN
+C**
+C**   VERSIONS-
+C**   DATUM    :   29.04.2014
+C**
+C**   EXTERNALS:   PSTONN
+C**
+C**   EINGABE-
+C**   PARAMETER:   AK, BK : VERTIKALKOORDINATENPARAMETER
+C**                T      : TEMPERATUR
+C**                PS     : BODENDRUCK
+C**                FIB    : OROGRAPHIE
+C**                NX     : ZEITEBENE FUER FELDER MIT DREI ZEITEBENEN
+C**   AUSGABE-
+C**   PARAMETER:   PSRED  : AUF NN REDUZIERTER BODENDRUCK
+C**
+C**   COMMON-
+C**   BLOECKE  :   PHYKON
+C**
+C**   METHODE  :   BERECHNUNG DES AUF NN REDUZIERTEN BODENDRUCKES
+C**
+C**   FEHLERBE-
+C**   HANDLUNG :   KEINE
+C**
+C**   VERFASSER:   R.PODZUN
+C
+      IMPLICIT NONE
+C
+      INCLUDE "parorg.h"
+      INCLUDE "phykon.h"
+C
+      INTEGER, INTENT(IN)    :: NX
+C     EINGABE-FELDER
+      REAL,    INTENT(IN)    :: AK(KE+1), BK(KE+1)
+      REAL,    INTENT(IN)    :: T(IEJE,KE,3), PS(IEJE,3), FIB(IEJE)
+C     AUSGABE-FELD
+      REAL,    INTENT(INOUT) :: PSRED(IEJE)
+C
+C     LOKALE FELDER
+      REAL    :: ZPS(IEJE), ZT(IEJE)
+C
+      INTEGER :: IJ
+C
+C
+      DO IJ=1,IEJE
+         ZPS(IJ)=PS(IJ,NX)
+         ZT(IJ)=T(IJ,MOKE,NX)
+         PSRED(IJ)=-99999.
+      ENDDO
+C
+      CALL PSTONN(AK,BK,ZPS,ZT,FIB,PSRED)
+C
+      RETURN
+      END SUBROUTINE PSREDBER

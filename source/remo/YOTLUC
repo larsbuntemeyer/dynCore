@@ -1,0 +1,31 @@
+C
+C*    *YOTLUC* - TABLES FOR CONVECTIVE ADJUSTMENT CODE
+C
+C          D.SALMOND  CRAY (UK)   12/8/91
+C
+      INTEGER, PARAMETER  :: JPTLUCU1=100000 , JPTLUCU2=370000
+C
+      REAL ::        TLUCUA(JPTLUCU1:JPTLUCU2),
+     &               TLUCUB(JPTLUCU1:JPTLUCU2),
+     &               TLUCUC(JPTLUCU1:JPTLUCU2),
+     &               TLUCUAW(JPTLUCU1:JPTLUCU2)
+C
+      COMMON/YOTLUC/ TLUCUA,
+     &               TLUCUB,
+     &               TLUCUC,
+     &               TLUCUAW
+C
+*IF DEF,DOC
+C
+C*    LOOKUP TABLES FOR CUADJTQ
+C
+C
+C     NAME      TYPE     DEFINITION
+C     ----      ----     ----------
+C
+C     TLUCUA    REAL     TABLE 1
+C     TLUCUB    REAL     TABLE 1
+C     TLUCUC    REAL     TABLE 1
+C     TLUCUAW   REAL     TABLE 1
+C
+*ENDIF
